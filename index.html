@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milthm 定数表编辑器</title>
+
+<link rel="stylesheet" href="css/viewer.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header class="toolbar">
+    <div class="title">Milthm 定数表编辑器</div>
+    <span class="version-label">Ver</span>
+    <input type="text" class="version-input" id="version-input" value="1.0" title="修改版本号（全局）">
+    <button class="btn" id="btn-undo">撤销</button>
+    <button class="btn" id="btn-redo">重做</button>
+    <div class="search-box">
+      <input type="text" id="global-search" placeholder="搜索曲目 / 定数" autocomplete="off">
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="btn-import">导入 JSON</button>
+    <button class="btn" id="btn-view-json">查看 JSON</button>
+    <button class="btn primary" id="btn-export">导出 JSON</button>
+    <button class="btn success" id="btn-save">保存</button>
+    <button class="btn" id="btn-audit">体检</button>
+    <button class="btn" id="btn-snap">快照</button>
+    <button class="btn" id="btn-replace">替换</button>
+    <button class="btn danger" id="btn-reset">清空</button>
+    <input type="file" id="file-input" accept=".json,application/json" style="display:none">
+  </header>
+
+  <div class="workspace">
+    <aside class="page-list" id="page-list"></aside>
+    <section class="editor-panel" id="editor-panel">
+      <div class="empty-hint">
+        <strong>暂无数据</strong><br>
+        点击左侧「+ 添加页面」「+ 特殊页面」或「+ 新定数页」开始构建<br>
+        或点击「导入 JSON」载入现有数据
+      </div>
+    </section>
+    <section class="preview-panel">
+      <div class="preview-header">
+        <span class="dot"></span>
+        <span class="preview-title">查看器预览</span>
+        <div class="preview-actions">
+          <select class="preview-select" id="export-scale" title="导出清晰度">
+            <option value="1">1x</option>
+            <option value="2" selected>2x</option>
+            <option value="3">3x</option>
+            <option value="4">4x</option>
+          </select>
+          <button class="preview-btn primary" id="btn-export-current">导出当前页</button>
+          <button class="preview-btn" id="btn-export-all">导出全部</button>
+        </div>
+      </div>
+      <div id="viewer-root" class="viewer-scope"></div>
+    </section>
+  </div>
+
+  <footer class="status-bar">
+    <span class="save-status" id="footer-status">就绪</span>
+    <span class="save-time" id="footer-save-time">尚未保存</span>
+  </footer>
+</div>
+
+<div class="batch-bar" id="batch-bar">
+  <span class="batch-count" id="batch-count">已选 0 首</span>
+  <button class="btn" id="batch-set-badge">修改 Badge</button>
+  <button class="btn danger" id="batch-delete">批量删除</button>
+  <button class="btn" id="batch-clear">取消选择</button>
+</div>
+
+<div class="modal-overlay" id="modal-image">
+  <div class="modal">
+    <h3>选择曲绘</h3>
+    <div class="upload-zone" id="upload-zone">
+      <div class="text"><strong>点击 / 拖拽上传本地图片</strong><br>自动识别文件名中的曲名</div>
+    </div>
+    <input type="file" id="upload-input" accept="image/*" multiple style="display:none">
+    <div class="uploaded-list" id="uploaded-list"></div>
+    <input type="text" class="search" id="image-search" placeholder="搜索曲绘文件名或曲名...">
+    <div class="grid" id="image-grid"></div>
+    <div class="custom-row">
+      <input type="text" id="custom-image-input" placeholder="或输入完整文件名，如 (Artwork)Song - Artist.png">
+      <button class="btn primary" id="btn-custom-image">使用</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-cancel-image">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-badge">
+  <div class="modal" style="max-width:340px;">
+    <h3>选择角标</h3>
+    <div id="badge-options"></div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-cancel-badge">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-tag">
+  <div class="modal" style="max-width:400px;">
+    <h3>特殊标签 (Tag)</h3>
+    <div class="tag-hint">在难度或歌曲旁显示一个小标签（如：追加）。留空则移除标签。</div>
+    <input type="text" class="search" id="tag-input" maxlength="8" placeholder="输入标签文本...">
+    <div class="modal-actions">
+      <button class="btn primary" id="btn-apply-tag">应用</button>
+      <button class="btn" id="btn-cancel-tag">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-audit">
+  <div class="modal" style="max-width:620px;">
+    <h3>数据体检</h3>
+    <div class="tag-hint" id="audit-summary"></div>
+    <div class="audit-list" id="audit-list"></div>
+    <div class="modal-actions">
+      <button class="btn success" id="btn-audit-fix">一键修复可匹配项</button>
+      <button class="btn" id="btn-audit-close">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-snapshot">
+  <div class="modal" style="max-width:560px;">
+    <h3>保存快照</h3>
+    <div class="tag-hint">保留最近 10 份数据结构快照，不含曲绘图片。手动保存、清空与导入前会自动创建。</div>
+    <div class="audit-list" id="snapshot-list"></div>
+    <div class="modal-actions">
+      <button class="btn primary" id="btn-snap-create">立即创建</button>
+      <button class="btn" id="btn-snap-close">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-replace">
+  <div class="modal" style="max-width:480px;">
+    <h3>批量替换</h3>
+    <div class="tag-hint">对所有曲绘文件名、背景图与曲绘映射做文本替换，例如把 (Artwork) 统一改成 (SquareArtwork)。执行前会自动创建快照。</div>
+    <input type="text" class="search" id="replace-find" placeholder="查找文本，如 (Artwork)">
+    <input type="text" class="search" id="replace-with" placeholder="替换为，如 (SquareArtwork)">
+    <div class="tag-hint" id="replace-count">输入后显示将影响的位置数</div>
+    <div class="modal-actions">
+      <button class="btn primary" id="btn-replace-run">执行</button>
+      <button class="btn" id="btn-replace-close">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-apply">
+  <div class="modal" style="max-width:520px;">
+    <h3>套用定数</h3>
+    <div class="tag-hint">选择正文、多指定数或新定数页中的曲目，其所有谱面的定数（含多指定数与难度标签）将填入该行，并同步曲名与曲绘。</div>
+    <input type="text" class="search" id="apply-search" placeholder="搜索曲名...">
+    <div class="audit-list" id="apply-list"></div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-apply-close">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-json">
+  <div class="modal" style="max-width:760px;">
+    <h3>JSON 原始数据</h3>
+    <div class="tag-hint">当前编辑数据的 raw JSON，结构与「导出 JSON」一致。默认省略图片 base64 以保持可读。</div>
+    <div class="json-toolbar">
+      <label class="json-opt"><input type="checkbox" id="json-with-images"> 包含图片 base64</label>
+      <span class="json-size" id="json-size"></span>
+    </div>
+    <pre class="json-view" id="json-view"></pre>
+    <div class="modal-actions">
+      <button class="btn" id="btn-json-copy">复制</button>
+      <button class="btn primary" id="btn-json-close">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="export-progress" id="export-progress">
+  <div class="spinner"></div>
+  <p id="export-status">正在导出...</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/vendor.js"></script>
+
+<script src="js/compat.js"></script>
+
+<script src="res/illustration/manifest.js"></script>
+
+<script src="js/viewer.js"></script>
+
+<script src="js/storage.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>
