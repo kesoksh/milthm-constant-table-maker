@@ -1,16 +1,8 @@
 /* css/style.css — 编辑器界面、弹窗与动画样式（原 editor-css-source） */
-  /* 网页整体字体：寒蝉全圆体（font.ttf 随项目分发，不依赖系统安装） */
-  @font-face {
-    font-family: '寒蝉全圆体';
-    src: url('../font.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     height: 100%;
-    font-family: '寒蝉全圆体', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     background: #0d0e14; color: #e8eaf0; overflow: hidden;
   }
   #app { display: flex; flex-direction: column; height: 100vh; }
@@ -729,7 +721,7 @@
   .json-view {
     background: #0d0e14; border: 1px solid #2a2c3a; border-radius: 8px;
     padding: 10px 12px; max-height: 420px; overflow: auto; margin: 0;
-    font-family: '寒蝉全圆体', Consolas, 'Courier New', monospace; font-size: 11px;
+    font-family: Consolas, 'Courier New', monospace; font-size: 11px;
     line-height: 1.5; color: #a8b0c8;
     white-space: pre-wrap; word-break: break-all; user-select: text;
   }

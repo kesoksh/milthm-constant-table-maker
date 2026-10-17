@@ -43,7 +43,6 @@
 
 ```
 ├── res/illustration/       曲绘（含 manifest.js / manifest.json 清单）
-├── font.ttf                网页字体：寒蝉全圆体（@font-face 嵌入，整体使用）
 ├── index.html              入口（head 引用 CSS，body 末尾引用 JS）
 ├── css/
 │   ├── viewer.css          查看器卡片与导出 PNG 样式
