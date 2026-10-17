@@ -215,3 +215,12 @@
     font-size: 10px; font-weight: 600; color: #8a90a0;
     letter-spacing: 0.2px; white-space: nowrap;
   }
+  /* 预览曲绘可点击：跳转编辑器定位 */
+  .viewer-scope .jacket,
+  .viewer-scope .special-jacket,
+  .viewer-scope .nc-jacket {
+    cursor: pointer; transition: filter 0.12s;
+  }
+  .viewer-scope .jacket:hover,
+  .viewer-scope .special-jacket:hover,
+  .viewer-scope .nc-jacket:hover { filter: brightness(1.2); }

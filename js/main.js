@@ -2282,9 +2282,26 @@
       setTimeout(() => el.classList.remove('search-hit'), 2200);
     });
   }
+  // 预览曲绘点击定位：解析 viewer 渲染的 data-jump 引用，复用 gotoSearchResult 跳转+高亮
+  function parseJumpRef(attr) {
+    const p = String(attr || '').split(':');
+    if (p[0] === 's') return { kind: 'special', songIdx: +p[1] };
+    if (p[0] === 'c') return { kind: 'newconst', songIdx: +p[1] };
+    if (p[0] === 'n') return { kind: 'normal', secIdx: +p[1], decIdx: +p[2], songIdx: +p[3] };
+    return null;
+  }
 
   function bindEvents() {
     setupModalCloseAnimation();
+    // ===== 预览定位：点击右侧预览的曲绘 → 跳到编辑器对应条目并高亮 =====
+    document.getElementById('viewer-root').addEventListener('click', function (e) {
+      const el = e.target && e.target.closest ? e.target.closest('[data-jump]') : null;
+      if (!el) return;
+      const r = parseJumpRef(el.getAttribute('data-jump'));
+      if (!r) return;
+      r.pageIdx = state.currentPageIndex;
+      gotoSearchResult(r);
+    });
     document.getElementById('btn-undo').onclick = undo;
     document.getElementById('btn-redo').onclick = redo;
     document.getElementById('btn-export').onclick = exportJson;

@@ -45,7 +45,7 @@
       const isNewConst = page.type === 'newconst';
       let sectionsHTML = '';
       if (isSpecial) {
-        const songsHTML = (page.songs || []).map(song => {
+        const songsHTML = (page.songs || []).map((song, songIdx) => {
           const filename = song.filename || (jacketMap && jacketMap[song.name]) || '';
           const src = resolve(filename);
           const diffClass = getDiffClass(song.difficulty);
@@ -53,12 +53,12 @@
           const tagText = getSongTag(song);
           const songTag = tagText ? `<div class="special-tag">${esc(tagText)}</div>` : '';
           const imgTag = src ? `<img src="${esc(src)}" alt="${esc(song.name)}" loading="lazy" onerror="this.style.display='none'">` : '';
-          return `<div class="special-row"><div class="special-jacket">${imgTag}</div><div class="special-info"><div class="special-song-name">${esc(song.name)}</div><div class="special-badges-row"><div class="special-diff-badge ${diffClass}">${esc(song.difficulty)}</div>${songTag}</div></div><div class="special-constant-pill"><span class="text">${constantText}</span></div></div>`;
+          return `<div class="special-row"><div class="special-jacket" data-jump="s:${songIdx}" title="点击定位到编辑器">${imgTag}</div><div class="special-info"><div class="special-song-name">${esc(song.name)}</div><div class="special-badges-row"><div class="special-diff-badge ${diffClass}">${esc(song.difficulty)}</div>${songTag}</div></div><div class="special-constant-pill"><span class="text">${constantText}</span></div></div>`;
         }).join('');
         sectionsHTML = `<div class="special-title"><div class="main">${esc(page.title || '')}</div><div class="sub">${esc(page.subtitle || '')}</div></div><div class="special-songs">${songsHTML}</div>`;
       } else if (isNewConst) {
         // 新定数页：曲绘 + 曲名 + 各难度定数的卡片列表
-        const songsHTML = (page.songs || []).map(song => {
+        const songsHTML = (page.songs || []).map((song, songIdx) => {
           const filename = song.filename || (jacketMap && jacketMap[song.name]) || '';
           const src = resolve(filename);
           const imgTag = src ? `<img src="${esc(src)}" alt="${esc(song.name)}" loading="lazy" onerror="this.style.display='none'">` : '';
@@ -67,26 +67,26 @@
             const tag = d.tag ? `<span class="nc-tag">${esc(d.tag)}</span>` : '';
             return `<span class="nc-chip"><span class="badge-select-btn ${getDiffClass(d.difficulty)}">${esc(d.difficulty)}</span>${tag}<span class="nc-const">${c}</span></span>`;
           }).join('');
-          return `<div class="nc-card"><div class="nc-jacket">${imgTag}</div><div class="nc-info"><div class="nc-name">${esc(song.name)}</div><div class="nc-diffrow">${chips}</div></div></div>`;
+          return `<div class="nc-card"><div class="nc-jacket" data-jump="c:${songIdx}" title="点击定位到编辑器">${imgTag}</div><div class="nc-info"><div class="nc-name">${esc(song.name)}</div><div class="nc-diffrow">${chips}</div></div></div>`;
         }).join('');
         const titleBlock = (page.title || page.subtitle)
           ? `<div class="special-title"><div class="main">${esc(page.title || '')}</div><div class="sub">${esc(page.subtitle || '')}</div></div>` : '';
         sectionsHTML = titleBlock + `<div class="nc-list">${songsHTML}</div>`;
       } else {
-        sectionsHTML = (page.sections || []).map(section => {
+        sectionsHTML = (page.sections || []).map((section, secIdx) => {
           const isUpper = isUpperRange(section.range);
           const barClass = isUpper ? 'bar-5' : 'bar-0';
-          const rowsHTML = (section.decimals || []).map(dg => {
-            const jacketsHTML = (dg.songs || []).map(song => {
+          const rowsHTML = (section.decimals || []).map((dg, decIdx) => {
+            const jacketsHTML = (dg.songs || []).map((song, songIdx) => {
               const filename = song.filename || (jacketMap && jacketMap[song.name]) || '';
               const src = resolve(filename);
               const diffClass = getDiffClass(song.difficulty);
               const tagText = getSongTag(song);
               const songTag = tagText ? `<div class="song-tag">${esc(tagText)}</div>` : '';
               if (src) {
-                return `<div class="jacket"><img src="${esc(src)}" alt="${esc(song.name)}" loading="lazy" onerror="this.style.display='none'"><div class="diff-badge ${diffClass}">${esc(song.difficulty)}</div>${songTag}</div>`;
+                return `<div class="jacket" data-jump="n:${secIdx}:${decIdx}:${songIdx}" title="点击定位到编辑器"><img src="${esc(src)}" alt="${esc(song.name)}" loading="lazy" onerror="this.style.display='none'"><div class="diff-badge ${diffClass}">${esc(song.difficulty)}</div>${songTag}</div>`;
               }
-              return `<div class="jacket" style="background:#30313b;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(255,255,255,0.2);">${esc((song.name || '').slice(0, 4))}</div>`;
+              return `<div class="jacket" data-jump="n:${secIdx}:${decIdx}:${songIdx}" title="点击定位到编辑器" style="background:#30313b;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(255,255,255,0.2);">${esc((song.name || '').slice(0, 4))}</div>`;
             }).join('');
             const ratingText = dg.decimal !== null && dg.decimal !== undefined ? `<span class="text c-${dg.decimal}">${esc(page.integer)}.${dg.decimal}</span>` : '';
             return `<div class="chart-row"><div class="rating-pill">${ratingText}</div><div class="jackets-box">${jacketsHTML}</div></div>`;
