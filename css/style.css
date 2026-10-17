@@ -786,3 +786,22 @@
       transition-duration: 0.01ms !important;
     }
   }
+
+  /* ===== 导入后预加载资源：询问与进度视图 ===== */
+  .pl-remember {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #9aa0b0; cursor: pointer;
+    margin: 6px 0 -2px; user-select: none;
+  }
+  .pl-remember input { accent-color: #7b68c8; }
+  .progress-track {
+    width: 100%; height: 8px; background: #232536;
+    border-radius: 999px; overflow: hidden; margin-top: 14px;
+  }
+  .progress-fill {
+    width: 100%; height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #7b68c8, #a594ff);
+    transform: scaleX(0); transform-origin: left center;
+    transition: transform 0.12s linear;
+  }
+  #pl-status { margin-top: 8px; margin-bottom: 2px; }

@@ -1510,6 +1510,14 @@
         markDirty();
         invalidatePreview();
         toast('已加载 ' + ok + ' 张图片', 'success');
+        // 资源导入后同样可选先加载（进度可见），完成后回到选择器/页面
+        openPreloadFlow(collectPreloadTargets(), {
+          askTitle: '导入完成',
+          hint: '已导入 ' + ok + ' 张图片资源，先加载完成可避免预览与图片选择的加载卡顿。',
+          startLabel: '先加载资源',
+          directLabel: '直接完成',
+          skipLabel: '跳过并完成'
+        }, function () {});
       }
     }
 
@@ -1876,6 +1884,124 @@
     toast('已替换 ' + done + ' 处', 'success');
   }
 
+  // ===== 导入后预加载资源：可选先加载、实时进度、完成后自动进入页面 =====
+  // 收集当前会用到的全部图片 src：viewer 同款解析（本地内存图优先，否则 res/illustration）
+  function collectPreloadTargets() {
+    const set = new Set();
+    const add = fn => {
+      if (!fn) return;
+      const src = localImages[fn] || resolveAssetUrl(fn);
+      if (src && !set.has(src)) set.add(src);
+    };
+    (state.data.pages || []).forEach(page => {
+      if (page.type === 'special' || page.type === 'newconst') {
+        (page.songs || []).forEach(s => add(s.filename));
+      } else {
+        (page.sections || []).forEach(sec => (sec.decimals || []).forEach(dg => (dg.songs || []).forEach(s => add(s.filename))));
+      }
+    });
+    Object.keys(state.jacketMap || {}).forEach(k => add(state.jacketMap[k]));
+    Object.keys(localImages).forEach(add);
+    return Array.from(set);
+  }
+  // 逐张加载并 decode()（解码进缓存），实时回调进度；失败不阻塞；支持中途跳过
+  function preloadImages(list, onProgress) {
+    const signal = { cancelled: false, cancel: null };
+    let releaseCancel;
+    const cancelled = new Promise(r => { releaseCancel = r; });
+    signal.cancel = () => { signal.cancelled = true; releaseCancel(); };
+    let done = 0;
+    const total = list.length;
+    const work = Promise.all(list.map(src => new Promise(resolve => {
+      const img = new Image();
+      const finish = ok => {
+        if (signal.cancelled) { resolve(); return; }
+        done++;
+        if (onProgress) onProgress(done, total, src, ok);
+        resolve();
+      };
+      img.onload = () => {
+        if (typeof img.decode === 'function') img.decode().then(() => finish(true), () => finish(true));
+        else finish(true);
+      };
+      img.onerror = () => finish(false);
+      img.src = src;
+    })));
+    return {
+      signal,
+      promise: Promise.race([work, cancelled]).then(() => ({ done, total, cancelled: signal.cancelled }))
+    };
+  }
+  const PRELOAD_PREF_KEY = 'mct.preloadPref'; // 'auto' | 'never' | 空（每次询问）
+  function readPreloadPref() { try { return localStorage.getItem(PRELOAD_PREF_KEY); } catch (e) { return null; } }
+  function writePreloadPref(v) { try { v ? localStorage.setItem(PRELOAD_PREF_KEY, v) : localStorage.removeItem(PRELOAD_PREF_KEY); } catch (e) {} }
+  function preloadBaseName(src) {
+    if (!src) return '';
+    if (src.indexOf('data:') === 0) return '内嵌图片';
+    const seg = src.split('/').pop();
+    try { return decodeURIComponent(seg); } catch (e) { return seg; }
+  }
+  // 主入口：有资源 → 询问（或按记忆直接执行）→ 实时进度 → 完成后自动调 onEnter 进入页面
+  function openPreloadFlow(targets, opts, onEnter) {
+    opts = opts || {};
+    let entered = false;
+    const enter = () => {
+      if (entered) return;
+      entered = true;
+      document.getElementById('modal-preload').classList.remove('active');
+      if (onEnter) onEnter();
+    };
+    if (!targets || !targets.length) { enter(); return; }
+    const pref = readPreloadPref();
+    if (pref === 'never') { enter(); return; }
+    const modal = document.getElementById('modal-preload');
+    const askBox = document.getElementById('pl-ask');
+    const runBox = document.getElementById('pl-run');
+    const title = document.getElementById('pl-title');
+    const hint = document.getElementById('pl-hint');
+    const status = document.getElementById('pl-status');
+    const fill = document.getElementById('pl-fill');
+    const remember = document.getElementById('pl-remember');
+    const startBtn = document.getElementById('btn-pl-start');
+    const directBtn = document.getElementById('btn-pl-direct');
+    const skipBtn = document.getElementById('btn-pl-skip');
+    remember.checked = false;
+    hint.textContent = opts.hint || ('检测到 ' + targets.length + ' 张图片资源，先加载完成再进入页面，可避免预览时逐张加载的卡顿。');
+    const startRun = () => {
+      title.textContent = '正在预加载图片资源';
+      askBox.hidden = true;
+      runBox.hidden = false;
+      skipBtn.textContent = opts.skipLabel || '跳过并进入';
+      fill.style.transform = 'scaleX(0)';
+      status.textContent = '0 / ' + targets.length;
+      const t0 = Date.now();
+      const run = preloadImages(targets, (done, total, src) => {
+        fill.style.transform = 'scaleX(' + (done / total) + ')';
+        status.textContent = done + ' / ' + total + ' · ' + preloadBaseName(src);
+      });
+      skipBtn.onclick = () => { run.signal.cancel(); enter(); };
+      run.promise.then(res => {
+        if (res.cancelled) return;
+        fill.style.transform = 'scaleX(1)';
+        status.textContent = '完成 · ' + res.done + ' 张（' + ((Date.now() - t0) / 1000).toFixed(1) + 's）';
+        setTimeout(enter, 200);
+      });
+    };
+    if (pref === 'auto') {
+      modal.classList.add('active');
+      startRun();
+      return;
+    }
+    title.textContent = opts.askTitle || '导入完成';
+    askBox.hidden = false;
+    runBox.hidden = true;
+    startBtn.textContent = opts.startLabel || '先加载资源';
+    directBtn.textContent = opts.directLabel || '直接进入';
+    startBtn.onclick = () => { if (remember.checked) writePreloadPref('auto'); startRun(); };
+    directBtn.onclick = () => { if (remember.checked) writePreloadPref('never'); enter(); };
+    modal.classList.add('active');
+  }
+
   function importJson(file) {
     const reader = new FileReader();
     reader.onload = e => {
@@ -1890,10 +2016,13 @@
         localThumbs = (parsed.localThumbs && typeof parsed.localThumbs === 'object') ? parsed.localThumbs : {};
         state.currentPageIndex = 0;
         selectedSongs.clear();
-        renderAll();
-        setTimeout(ensureAllThumbs, 100);
         markDirty();
         toast('已导入 JSON', 'success');
+        // 可选先预加载图片资源（实时进度），完成后再进入页面，避免预览卡顿
+        openPreloadFlow(collectPreloadTargets(), {}, function () {
+          renderAll();
+          setTimeout(ensureAllThumbs, 100);
+        });
       } catch (err) { toast('导入失败: ' + err.message, 'error'); }
     };
     reader.readAsText(file);

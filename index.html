@@ -181,6 +181,27 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-preload">
+  <div class="modal" style="max-width:460px;">
+    <h3 id="pl-title">导入完成</h3>
+    <div id="pl-ask">
+      <div class="tag-hint" id="pl-hint"></div>
+      <label class="pl-remember"><input type="checkbox" id="pl-remember"> 记住此选择，下次导入自动执行</label>
+      <div class="modal-actions">
+        <button class="btn primary" id="btn-pl-start">先加载资源</button>
+        <button class="btn" id="btn-pl-direct">直接进入</button>
+      </div>
+    </div>
+    <div id="pl-run" hidden>
+      <div class="progress-track"><div class="progress-fill" id="pl-fill"></div></div>
+      <div class="tag-hint" id="pl-status">准备中…</div>
+      <div class="modal-actions">
+        <button class="btn" id="btn-pl-skip">跳过并进入</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="export-progress" id="export-progress">
   <div class="spinner"></div>
   <p id="export-status">正在导出...</p>
